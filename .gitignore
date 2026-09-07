@@ -1,0 +1,6 @@
+.mimocode/
+.idea/
+download/
+__pycache__/
+*.pyc
+~$*

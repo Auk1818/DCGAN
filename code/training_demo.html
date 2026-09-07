@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>DCGAN 训练过程动态演示</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+    background: #0a0a1a;
+    color: #e0e0e0;
+    min-height: 100vh;
+}
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 20px;
+}
+h1 {
+    text-align: center;
+    font-size: 22px;
+    color: #00d4ff;
+    margin-bottom: 24px;
+    font-weight: 600;
+}
+.main-area {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+}
+.left-panel {
+    flex: 1;
+    min-width: 0;
+}
+.right-panel {
+    width: 280px;
+    flex-shrink: 0;
+}
+/* 生成图片展示 */
+.image-box {
+    background: #12122a;
+    border-radius: 14px;
+    padding: 16px;
+    border: 1px solid #2a2a4a;
+}
+.image-box img {
+    width: 100%;
+    border-radius: 8px;
+    display: block;
+    background: #111;
+}
+.epoch-label {
+    text-align: center;
+    font-size: 18px;
+    color: #00d4ff;
+    margin-bottom: 12px;
+    font-weight: 600;
+}
+/* 进度条 */
+.slider-wrap {
+    margin-top: 14px;
+    padding: 0 4px;
+}
+input[type="range"] {
+    width: 100%;
+    -webkit-appearance: none;
+    height: 6px;
+    border-radius: 3px;
+    background: #2a2a4a;
+    outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: #00d4ff;
+    cursor: pointer;
+    border: 2px solid #0a0a1a;
+}
+/* 控制按钮 */
+.controls {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 16px;
+}
+.btn {
+    background: #1a1a3a;
+    border: 1px solid #3a3a6a;
+    color: #e0e0e0;
+    padding: 8px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.15s;
+}
+.btn:hover { background: #2a2a5a; border-color: #00d4ff; }
+.btn.active { background: #00d4ff22; border-color: #00d4ff; color: #00d4ff; }
+.speed-btns { display: flex; gap: 6px; align-items: center; margin-top: 12px; justify-content: center; }
+.speed-btns span { color: #888; font-size: 13px; }
+.speed-btns .btn { padding: 4px 12px; font-size: 13px; }
+/* Loss 曲线面板 */
+.loss-panel {
+    background: #12122a;
+    border-radius: 14px;
+    padding: 16px;
+    border: 1px solid #2a2a4a;
+}
+.loss-panel h3 {
+    font-size: 14px;
+    color: #aaa;
+    margin-bottom: 10px;
+}
+.loss-panel img {
+    width: 100%;
+    border-radius: 8px;
+    margin-bottom: 12px;
+}
+.stats {
+    font-size: 13px;
+    color: #888;
+    line-height: 1.8;
+}
+.stats b { color: #e0e0e0; }
+.footer {
+    text-align: center;
+    margin-top: 20px;
+    color: #555;
+    font-size: 12px;
+}
+</style>
+</head>
+<body>
+<div class="container">
+    <h1>DCGAN 漫画头像生成 - 训练过程动态演示</h1>
+
+    <div class="main-area">
+        <div class="left-panel">
+            <div class="image-box">
+                <div class="epoch-label">Epoch <span id="epochNum">1</span> / 40</div>
+                <img id="genImg" src="../result/generated_epoch1.png" alt="generated">
+                <div class="slider-wrap">
+                    <input type="range" id="slider" min="1" max="40" value="1">
+                </div>
+            </div>
+            <div class="controls">
+                <button class="btn" id="btnPrev">&laquo; 上一轮</button>
+                <button class="btn active" id="btnPlay">&#9654; 播放</button>
+                <button class="btn" id="btnNext">下一轮 &raquo;</button>
+            </div>
+            <div class="speed-btns">
+                <span>速度：</span>
+                <button class="btn" data-speed="2000">慢</button>
+                <button class="btn active" data-speed="1000">中</button>
+                <button class="btn" data-speed="500">快</button>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <div class="loss-panel">
+                <h3>Loss 曲线</h3>
+                <img id="lossImg" src="../result/loss_curve_epoch1.png" alt="loss curve">
+                <div class="stats">
+                    <b>训练轮数：</b>40 epochs<br>
+                    <b>批次大小：</b>128<br>
+                    <b>图片尺寸：</b>64 x 64<br>
+                    <b>隐空间维度：</b>100<br>
+                    <b>学习率：</b>0.0002<br>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        基于 MindSpore 的 DCGAN 生成漫画头像 | 训练 40 轮结果展示
+    </div>
+</div>
+
+<script>
+const slider = document.getElementById('slider');
+const epochNum = document.getElementById('epochNum');
+const genImg = document.getElementById('genImg');
+const lossImg = document.getElementById('lossImg');
+const btnPlay = document.getElementById('btnPlay');
+const btnPrev = document.getElementById('btnPrev');
+const btnNext = document.getElementById('btnNext');
+const speedBtns = document.querySelectorAll('.speed-btns .btn');
+
+let current = 1;
+const total = 40;
+let playing = true;
+let speed = 1000;
+let timer = null;
+
+function show(epoch) {
+    current = Math.max(1, Math.min(total, epoch));
+    slider.value = current;
+    epochNum.textContent = current;
+    genImg.src = '../result/generated_epoch' + current + '.png';
+    lossImg.src = '../result/loss_curve_epoch' + current + '.png';
+}
+
+function tick() {
+    if (current >= total) {
+        stopPlay();
+        return;
+    }
+    show(current + 1);
+}
+
+function startPlay() {
+    playing = true;
+    btnPlay.innerHTML = '&#9646;&#9646; 暂停';
+    btnPlay.classList.add('active');
+    timer = setInterval(tick, speed);
+}
+
+function stopPlay() {
+    playing = false;
+    btnPlay.innerHTML = '&#9654; 播放';
+    btnPlay.classList.remove('active');
+    if (timer) { clearInterval(timer); timer = null; }
+}
+
+btnPlay.addEventListener('click', () => {
+    if (playing) stopPlay(); else { if (current >= total) show(1); startPlay(); }
+});
+btnPrev.addEventListener('click', () => { stopPlay(); show(current - 1); });
+btnNext.addEventListener('click', () => { stopPlay(); show(current + 1); });
+slider.addEventListener('input', () => { stopPlay(); show(parseInt(slider.value)); });
+
+speedBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        speedBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        speed = parseInt(btn.dataset.speed);
+        if (playing) { clearInterval(timer); timer = setInterval(tick, speed); }
+    });
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') { stopPlay(); show(current - 1); }
+    if (e.key === 'ArrowRight') { stopPlay(); show(current + 1); }
+    if (e.key === ' ') { e.preventDefault(); if (playing) stopPlay(); else { if (current >= total) show(1); startPlay(); } }
+});
+
+stopPlay();
+</script>
+</body>
+</html>
