@@ -4,3 +4,21 @@ download/
 __pycache__/
 *.pyc
 ~$*
+
+# 模型权重与优化器状态（每组约 100MB，不入库；final_d 的 generator.ckpt 可单独用 release 发布）
+*.ckpt
+*.npz
+
+# 逐轮生成图太多，只保留几个代表轮次
+runs/*/generated_epoch*.png
+runs/*/generated_raw_epoch*.png
+!runs/*/generated_epoch1.png
+!runs/*/generated_epoch15.png
+!runs/*/generated_epoch40.png
+!runs/*/generated_epoch60.png
+runs/original/loss_curve_epoch*.png
+runs/original/dcgan.gif
+report_assets/generated_epoch*.png
+report_assets/dcgan.gif
+
+result/
